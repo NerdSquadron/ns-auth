@@ -1,6 +1,7 @@
 from flask import Flask, request, redirect
 from database import db
 from utils.roblox_api import roblox_api
+from config import config
 import os
 
 app = Flask(__name__)
@@ -17,11 +18,11 @@ def callback():
     if not code or not state:
         return "Invalid request", 400
     
-    # Get credentials
+    # Get credentials from database, fall back to environment variables
     creds = db.get_credentials()
-    client_id = creds.get('roblox_client_id')
-    client_secret = creds.get('roblox_client_secret')
-    redirect_uri = creds.get('roblox_redirect_uri')
+    client_id = creds.get('roblox_client_id') or config.ROBLOX_CLIENT_ID
+    client_secret = creds.get('roblox_client_secret') or config.ROBLOX_CLIENT_SECRET
+    redirect_uri = creds.get('roblox_redirect_uri') or config.ROBLOX_REDIRECT_URI
     
     if not all([client_id, client_secret, redirect_uri]):
         return "Bot not configured", 500

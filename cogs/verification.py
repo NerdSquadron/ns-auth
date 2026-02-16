@@ -38,10 +38,10 @@ class Verification(commands.Cog):
         state_code = secrets.token_urlsafe(32)
         await db.create_pending_verification(discord_id, state_code, guild_id)
         
-        # Get credentials from database
+        # Get credentials from database, fall back to environment variables
         creds = db.get_credentials()
-        client_id = creds.get('roblox_client_id', '')
-        redirect_uri = creds.get('roblox_redirect_uri', '')
+        client_id = creds.get('roblox_client_id', '') or config.ROBLOX_CLIENT_ID
+        redirect_uri = creds.get('roblox_redirect_uri', '') or config.ROBLOX_REDIRECT_URI
         
         if not client_id or not redirect_uri:
             await ctx.send("❌ Bot not fully configured yet. Contact admin.", delete_after=10)
