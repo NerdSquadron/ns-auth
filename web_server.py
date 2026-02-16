@@ -1,14 +1,81 @@
-from flask import Flask, request, redirect
+from flask import Flask, request, redirect, render_template, session, flash
+from functools import wraps
 from database import db
 from utils.roblox_api import roblox_api
 from config import config
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, 
+    template_folder='dashboard/templates',
+    static_folder='dashboard/static'
+)
+app.secret_key = os.getenv('SECRET_KEY', 'dev-key-change-in-production')
+
+# Simple auth - password set via env or default
+ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'admin123')
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'logged_in' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 @app.route('/')
 def home():
     return "AuthChecker Bot is running!"
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == ADMIN_PASSWORD:
+            session['logged_in'] = True
+            return redirect(url_for('dashboard'))
+        flash('Invalid password')
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    creds = db.get_credentials()
+    return render_template('dashboard.html', creds=creds, config=config)
+
+@app.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings():
+    if request.method == 'POST':
+        discord_token = request.form.get('discord_token', '').strip()
+        roblox_client_id = request.form.get('roblox_client_id', '').strip()
+        roblox_client_secret = request.form.get('roblox_client_secret', '').strip()
+        roblox_redirect_uri = request.form.get('roblox_redirect_uri', '').strip()
+        
+        blacklisted_groups_raw = request.form.get('blacklisted_groups', '').strip()
+        blacklisted_groups = []
+        if blacklisted_groups_raw:
+            blacklisted_groups = [int(x.strip()) for x in blacklisted_groups_raw.split(',') if x.strip().isdigit()]
+        
+        if discord_token:
+            db.save_credentials(discord_token, roblox_client_id, roblox_client_secret, roblox_redirect_uri)
+            db.save_guild_settings(guild_id=0, blacklisted_groups=blacklisted_groups)
+            flash('Settings saved successfully!', 'success')
+        else:
+            flash('Discord Token is required!', 'error')
+        
+        return redirect(url_for('settings'))
+    
+    creds = db.get_credentials()
+    guild_settings = db.get_guild_settings(0)
+    
+    return render_template('settings.html',
+                         creds=creds,
+                         blacklisted_groups=guild_settings.get('blacklisted_groups', []))
 
 @app.route('/callback')
 def callback():
