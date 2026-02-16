@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - AuthChecker{% endblock %}
+
+{% block content %}
+<h2>Bot Configuration</h2>
+
+<form method="POST" class="settings-form">
+    <div class="form-section">
+        <h3>Discord Bot</h3>
+        <div class="form-group">
+            <label for="discord_token">Discord Bot Token *</label>
+            <input type="password" id="discord_token" name="discord_token" 
+                   value="{{ creds.discord_token or '' }}" 
+                   placeholder="Enter your Discord bot token" required>
+            <small>Required for bot to function</small>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h3>Roblox OAuth (Optional)</h3>
+        <div class="form-group">
+            <label for="roblox_client_id">Roblox Client ID</label>
+            <input type="text" id="roblox_client_id" name="roblox_client_id" 
+                   value="{{ creds.roblox_client_id or '' }}" 
+                   placeholder="Your Roblox OAuth App ID">
+        </div>
+        
+        <div class="form-group">
+            <label for="roblox_client_secret">Roblox Client Secret</label>
+            <input type="password" id="roblox_client_secret" name="roblox_client_secret" 
+                   value="{{ creds.roblox_client_secret or '' }}" 
+                   placeholder="Your Roblox OAuth App Secret">
+        </div>
+        
+        <div class="form-group">
+            <label for="roblox_redirect_uri">Redirect URI</label>
+            <input type="url" id="roblox_redirect_uri" name="roblox_redirect_uri" 
+                   value="{{ creds.roblox_redirect_uri or '' }}" 
+                   placeholder="https://yourdomain.com/callback">
+            <small>Must match your Roblox OAuth app settings</small>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h3>Blacklisted Groups</h3>
+        <div class="form-group">
+            <label for="blacklisted_groups">Blacklisted Group IDs</label>
+            <textarea id="blacklisted_groups" name="blacklisted_groups" rows="3" 
+                      placeholder="123456, 789012, 345678">{{ blacklisted_groups | join(', ') if blacklisted_groups else '' }}</textarea>
+            <small>Comma-separated Roblox group IDs to flag in background checks</small>
+        </div>
+    </div>
+    
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+    </div>
+</form>
+{% endblock %}

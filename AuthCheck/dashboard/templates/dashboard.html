@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AuthChecker{% endblock %}
+
+{% block content %}
+<h2>System Status</h2>
+
+<div class="status-grid">
+    <div class="status-card {% if creds.discord_token %}ok{% else %}error{% endif %}">
+        <h3>Discord Bot</h3>
+        <p>{% if creds.discord_token %}✅ Configured{% else %}❌ Not Configured{% endif %}</p>
+    </div>
+    
+    <div class="status-card {% if creds.roblox_client_id %}ok{% else %}warning{% endif %}">
+        <h3>Roblox OAuth</h3>
+        <p>{% if creds.roblox_client_id %}✅ Configured{% else %}⚠️ Not Configured{% endif %}</p>
+    </div>
+</div>
+
+<div class="info-section">
+    <h3>Quick Info</h3>
+    <ul>
+        <li>Users verify with: <code>!verify_me</code></li>
+        <li>Admins check with: <code>/check @user</code></li>
+        <li>Verified role: <code>BotVerified</code> (auto-created)</li>
+    </ul>
+</div>
+
+<div class="actions">
+    <a href="{{ url_for('settings') }}" class="btn btn-primary">Configure Settings</a>
+</div>
+{% endblock %}
