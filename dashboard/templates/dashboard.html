@@ -3,30 +3,28 @@
 {% block title %}Dashboard - AuthChecker{% endblock %}
 
 {% block content %}
-<h2>System Status</h2>
+<h2>Dashboard</h2>
 
-<div class="status-grid">
-    <div class="status-card {% if creds.discord_token %}ok{% else %}error{% endif %}">
-        <h3>Discord Bot</h3>
-        <p>{% if creds.discord_token %}✅ Configured{% else %}❌ Not Configured{% endif %}</p>
-    </div>
-    
-    <div class="status-card {% if creds.roblox_client_id %}ok{% else %}warning{% endif %}">
-        <h3>Roblox OAuth</h3>
-        <p>{% if creds.roblox_client_id %}✅ Configured{% else %}⚠️ Not Configured{% endif %}</p>
-    </div>
+<div class="form-section">
+    <h3>Blacklisted Groups</h3>
+    <form method="POST" action="/dashboard">
+        <div class="form-group">
+            <label for="blacklisted_groups">Group IDs (comma-separated)</label>
+            <textarea id="blacklisted_groups" name="blacklisted_groups" rows="3" 
+                      placeholder="123456, 789012, 345678">{{ blacklisted_groups | join(', ') if blacklisted_groups else '' }}</textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
 </div>
 
 <div class="info-section">
-    <h3>Quick Info</h3>
+    <h3>Bot Info</h3>
     <ul>
-        <li>Users verify with: <code>!verify_me</code></li>
-        <li>Admins check with: <code>/check @user</code></li>
-        <li>Verified role: <code>BotVerified</code> (auto-created)</li>
+        <li>Command: <code>!verify_me</code></li>
+        <li>Check: <code>/check @user</code> (Admin only)</li>
+        <li>Verified role: <code>BotVerified</code></li>
     </ul>
 </div>
 
-<div class="actions">
-    <a href="{{ url_for('settings') }}" class="btn btn-primary">Configure Settings</a>
-</div>
+<a href="/logout" class="btn">Logout</a>
 {% endblock %}
