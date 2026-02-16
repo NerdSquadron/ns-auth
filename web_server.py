@@ -4,6 +4,7 @@ from utils.roblox_api import roblox_api
 from config import config
 import os
 import asyncio
+import sqlite3
 
 app = Flask(__name__, 
     template_folder='dashboard/templates',
@@ -12,6 +13,19 @@ app = Flask(__name__,
 app.secret_key = os.getenv('SECRET_KEY', 'dev-key-change-in-production')
 
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'admin123')
+
+# Initialize DB on startup
+def init_db():
+    try:
+        # Run async init in sync context
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(db.init())
+        loop.close()
+    except Exception as e:
+        print(f"DB Init error (may already exist): {e}")
+
+init_db()
 
 @app.route('/')
 def home():
@@ -49,13 +63,19 @@ def dashboard():
             db.save_guild_settings(guild_id=0, blacklisted_groups=blacklisted_groups)
             flash('Blacklisted groups updated!', 'success')
         except Exception as e:
-            flash(f'Error: {str(e)}', 'error')
+            flash(f'Error saving: {str(e)}', 'error')
         
         return redirect('/dashboard')
     
-    guild_settings = db.get_guild_settings(0)
+    try:
+        guild_settings = db.get_guild_settings(0)
+        blacklisted_groups = guild_settings.get('blacklisted_groups', [])
+    except Exception as e:
+        flash(f'Error loading settings: {str(e)}', 'error')
+        blacklisted_groups = []
+    
     return render_template('dashboard.html', 
-                         blacklisted_groups=guild_settings.get('blacklisted_groups', []))
+                         blacklisted_groups=blacklisted_groups)
 
 @app.route('/callback')
 def callback():
@@ -65,7 +85,6 @@ def callback():
     if not code or not state:
         return "Invalid request", 400
     
-    # Get credentials from environment variables (hardcoded in .env)
     client_id = config.ROBLOX_CLIENT_ID
     client_secret = config.ROBLOX_CLIENT_SECRET
     redirect_uri = config.ROBLOX_REDIRECT_URI
@@ -87,15 +106,19 @@ def callback():
     roblox_id = user_info['roblox_id']
     roblox_username = user_info['username']
     
-    pending = asyncio.run(db.get_pending_verification(state))
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    pending = loop.run_until_complete(db.get_pending_verification(state))
     
     if not pending:
+        loop.close()
         return "Verification session expired", 400
     
     discord_id, guild_id = pending
     
-    asyncio.run(db.verify_user(discord_id, roblox_id, roblox_username, guild_id))
-    asyncio.run(db.remove_pending_verification(discord_id))
+    loop.run_until_complete(db.verify_user(discord_id, roblox_id, roblox_username, guild_id))
+    loop.run_until_complete(db.remove_pending_verification(discord_id))
+    loop.close()
     
     return """
     <html>
@@ -121,8 +144,6 @@ def health():
     return {"status": "ok"}
 
 def run_web_server():
-    # Initialize database tables
-    asyncio.run(db.init())
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
 
